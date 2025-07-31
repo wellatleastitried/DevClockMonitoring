@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.timer-button {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2;
+}
+
+.timer-button.dev {
+  @apply bg-dev-500 hover:bg-dev-600 text-white focus:ring-dev-500;
+}
+
+.timer-button.wait {
+  @apply bg-wait-500 hover:bg-wait-600 text-white focus:ring-wait-500;
+}
+
+.timer-button.stop {
+  @apply bg-gray-500 hover:bg-gray-600 text-white focus:ring-gray-500;
+}
+
+.timer-button.danger {
+  @apply bg-danger-500 hover:bg-danger-600 text-white focus:ring-danger-500;
+}
+
+.timer-button.active {
+  @apply ring-2 ring-offset-2 shadow-lg;
+}
+
+.timer-button.active.dev {
+  @apply ring-dev-500 bg-dev-700;
+}
+
+.timer-button.active.wait {
+  @apply ring-wait-500 bg-wait-700;
+}
+
+.project-card {
+  @apply bg-white rounded-lg shadow-md p-6 border-l-4 transition-all duration-200 hover:shadow-lg;
+}
+
+.project-card.dev-active {
+  @apply border-dev-500 bg-dev-50;
+}
+
+.project-card.wait-active {
+  @apply border-wait-500 bg-wait-50;
+}
+
+.project-card.stopped {
+  @apply border-gray-300;
+}
+
+.time-display {
+  @apply text-2xl font-mono font-bold;
+}
+
+.time-display.dev {
+  @apply text-dev-700;
+}
+
+.time-display.wait {
+  @apply text-wait-700;
+}

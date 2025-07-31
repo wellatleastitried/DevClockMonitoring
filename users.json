@@ -1,0 +1,26 @@
+[
+  {
+    "username": "admin",
+    "role": "ADMIN",
+    "displayName": "Administrator",
+    "description": "Can create and delete projects"
+  },
+  {
+    "username": "developer1",
+    "role": "DEVELOPER",
+    "displayName": "Developer 1",
+    "description": "Can operate timers"
+  },
+  {
+    "username": "developer2",
+    "role": "DEVELOPER",
+    "displayName": "Developer 2",
+    "description": "Can operate timers"
+  },
+  {
+    "username": "testuser",
+    "role": "DEVELOPER",
+    "displayName": "Test User",
+    "description": "Can operate timers"
+  }
+]

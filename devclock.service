@@ -1,0 +1,22 @@
+[Unit]
+Description=DevClock Monitoring Service
+After=network.target
+
+[Service]
+Type=simple
+User=app
+Group=app
+WorkingDirectory=/opt/devclock
+ExecStart=/usr/bin/java -Xmx256m -jar /opt/devclock/dev-clock-monitoring-1.0.0.jar
+Restart=always
+RestartSec=10
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=devclock
+
+# Environment
+Environment=JAVA_HOME=/usr/lib/jvm/java-8-openjdk
+Environment=SERVER_PORT=8080
+
+[Install]
+WantedBy=multi-user.target
