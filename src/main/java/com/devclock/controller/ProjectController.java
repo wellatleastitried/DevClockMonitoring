@@ -188,22 +188,37 @@ public class ProjectController {
     public ResponseEntity<List<TimelineEntry>> getProjectTimeline(@PathVariable Long id,
                                                                 @RequestHeader("X-Username") String username) {
         try {
+            System.out.println("Timeline endpoint called for project " + id + " by user " + username);
             User user = userService.authenticateUser(username);
             
-            // Only admins can view timeline
-            if (!"ADMIN".equals(user.getRole())) {
+            if (!user.isAdmin()) {
+                System.out.println("Access denied - user is not admin");
                 return ResponseEntity.status(403).build();
             }
             
-            // Check if project exists
-            Optional<Project> project = projectService.getProjectById(id);
-            if (!project.isPresent()) {
+            Optional<Project> projectOpt = projectService.getProjectById(id);
+            if (!projectOpt.isPresent()) {
+                System.out.println("Project not found: " + id);
                 return ResponseEntity.notFound().build();
             }
             
+            Project project = projectOpt.get();
+            
             List<TimelineEntry> timeline = timelineEntryRepository.findByProjectIdOrderByTimestamp(id);
+            System.out.println("Found " + timeline.size() + " timeline entries for project " + id);
+            
+            if (timeline.isEmpty()) {
+                System.out.println("No timeline entries found, creating project creation entry");
+                TimelineEntry creationEntry = new TimelineEntry(project, "PROJECT_CREATED", 
+                    project.getCreatedAt(), "Project created", "system");
+                timelineEntryRepository.save(creationEntry);
+                timeline = timelineEntryRepository.findByProjectIdOrderByTimestamp(id);
+                System.out.println("After creating entry, timeline size: " + timeline.size());
+            }
+            
             return ResponseEntity.ok(timeline);
         } catch (IllegalArgumentException e) {
+            System.out.println("Timeline endpoint error: " + e.getMessage());
             return ResponseEntity.badRequest().build();
         }
     }

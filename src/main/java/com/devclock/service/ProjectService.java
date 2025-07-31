@@ -63,7 +63,6 @@ public class ProjectService {
         Project project = new Project(name, description);
         Project savedProject = projectRepository.save(project);
 
-        // Create timeline entry for project creation
         createTimelineEntry(savedProject, "PROJECT_CREATED", "Project created", user.getUsername());
 
         broadcastProjectUpdates();
@@ -103,13 +102,11 @@ public class ProjectService {
 
             if (project.getCurrentState() == Project.TimerState.DEV_ACTIVE) {
                 project.setDevTimeSeconds(project.getDevTimeSeconds() + secondsElapsed);
-                // Create timeline entry for stopping dev timer
                 TimelineEntry stopEntry = new TimelineEntry(project, "STOP_DEV", now, "Development work ended", username);
                 stopEntry.setDurationSeconds(secondsElapsed);
                 timelineEntryRepository.save(stopEntry);
             } else if (project.getCurrentState() == Project.TimerState.WAIT_ACTIVE) {
                 project.setWaitTimeSeconds(project.getWaitTimeSeconds() + secondsElapsed);
-                // Create timeline entry for stopping wait timer
                 TimelineEntry stopEntry = new TimelineEntry(project, "STOP_WAIT", now, "Customer wait ended", username);
                 stopEntry.setDurationSeconds(secondsElapsed);
                 timelineEntryRepository.save(stopEntry);
@@ -121,7 +118,6 @@ public class ProjectService {
         
         Project savedProject = projectRepository.save(project);
 
-        // Create timeline entry for new state
         if (newState == Project.TimerState.DEV_ACTIVE) {
             createTimelineEntry(savedProject, "START_DEV", "Development work started", username);
         } else if (newState == Project.TimerState.WAIT_ACTIVE) {
@@ -266,8 +262,10 @@ public class ProjectService {
     }
 
     private void createTimelineEntry(Project project, String eventType, String description, String username) {
+        System.out.println("Creating timeline entry: " + eventType + " for project " + project.getId() + " by " + username);
         TimelineEntry entry = new TimelineEntry(project, eventType, LocalDateTime.now(), description, username);
-        timelineEntryRepository.save(entry);
+        TimelineEntry saved = timelineEntryRepository.save(entry);
+        System.out.println("Timeline entry saved with ID: " + saved.getId());
     }
 
     private void broadcastProjectUpdates() {

@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatTime, calculateCurrentTime, getTimerStateColor, getTimerStateLabel } from '../utils/timeUtils';
 import { projectService, userService } from '../services/api';
+import ConfirmationModal from './ConfirmationModal';
 
 const ProjectCard = ({ project, user, onDelete, onTimerAction }) => {
   const [currentTimes, setCurrentTimes] = useState({ devTime: 0, waitTime: 0 });
   const [showAssignMenu, setShowAssignMenu] = useState(false);
   const [availableUsers, setAvailableUsers] = useState([]);
   const [loadingAssignment, setLoadingAssignment] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -95,6 +98,18 @@ const ProjectCard = ({ project, user, onDelete, onTimerAction }) => {
       alert('Failed to unassign user: ' + (err.response?.data?.error || err.message));
     } finally {
       setLoadingAssignment(false);
+    }
+  };
+
+  const handleDeleteProject = async () => {
+    setIsDeleting(true);
+    try {
+      await onDelete(project.id);
+      setShowDeleteModal(false);
+    } catch (err) {
+      console.error('Failed to delete project:', err);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -190,14 +205,23 @@ const ProjectCard = ({ project, user, onDelete, onTimerAction }) => {
           {user?.role === 'ADMIN' && (
             <>
               <button
-                onClick={() => navigate(`/timeline/${project.id}`)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Timeline button clicked for project:', project.id);
+                  navigate(`/timeline/${project.id}`);
+                }}
                 className="timer-button dev px-3 py-1 text-sm mr-2"
                 title="View Timeline"
               >
                 📊
               </button>
               <button
-                onClick={() => onDelete(project.id)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowDeleteModal(true);
+                }}
                 className="timer-button danger px-3 py-1 text-sm"
                 title="Delete Project"
               >
@@ -252,6 +276,19 @@ const ProjectCard = ({ project, user, onDelete, onTimerAction }) => {
           </button>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteProject}
+        title="Delete Project"
+        message={`Are you sure you want to delete "${project.name}"? This action cannot be undone and will permanently remove all project data including timeline entries.`}
+        confirmText="Delete Project"
+        cancelText="Cancel"
+        confirmButtonClass="bg-red-600 hover:bg-red-700"
+        isLoading={isDeleting}
+      />
     </div>
   );
 };

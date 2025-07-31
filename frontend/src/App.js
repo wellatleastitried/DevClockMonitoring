@@ -5,16 +5,21 @@ import CreateProjectModal from './components/CreateProjectModal';
 import UserHeader from './components/UserHeader';
 import LoginPage from './components/LoginPage';
 import ProjectTimeline from './components/ProjectTimeline';
-import { projectService, userService } from './services/api';
+import { projectService, userService, setUsername } from './services/api';
 import { websocketService } from './services/websocket';
 
 function App() {
   const [projects, setProjects] = useState([]);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('devClockUser');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return !!localStorage.getItem('devClockUser');
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const updateInterval = useRef(null);
   const searchInputRef = useRef(null);
@@ -32,6 +37,12 @@ function App() {
       websocketService.disconnect();
     };
   }, [isAuthenticated, user]);
+
+  useEffect(() => {
+    if (user?.username) {
+      setUsername(user.username);
+    }
+  }, [user]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -57,6 +68,8 @@ function App() {
       const userData = await userService.getCurrentUser(username);
       setUser(userData);
       setIsAuthenticated(true);
+      
+      localStorage.setItem('devClockUser', JSON.stringify(userData));
       
     } catch (err) {
       console.error('Failed to authenticate user:', err);
@@ -120,6 +133,8 @@ function App() {
     setIsAuthenticated(false);
     setSearchTerm(''); // Clear search when logging out
     websocketService.disconnect();
+    
+    localStorage.removeItem('devClockUser');
   };
 
   const filteredProjects = projects.filter(project => {
@@ -133,29 +148,22 @@ function App() {
     );
   }).sort((a, b) => {
     if (!searchTerm.trim()) {
-      // Default sort by creation date (newest first)
       return new Date(b.createdAt) - new Date(a.createdAt);
     }
     
     const searchLower = searchTerm.toLowerCase();
     
-    // Calculate relevance scores
     const getRelevanceScore = (project) => {
       let score = 0;
       const name = project.name.toLowerCase();
       const description = project.description.toLowerCase();
       
-      // Exact name match gets highest score
       if (name === searchLower) score += 100;
-      // Name starts with search term
       else if (name.startsWith(searchLower)) score += 50;
-      // Name contains search term
       else if (name.includes(searchLower)) score += 25;
       
-      // Description matches get lower scores
       if (description.includes(searchLower)) score += 10;
       
-      // Assigned user matches
       if (project.assignedUserUsername && project.assignedUserUsername.toLowerCase().includes(searchLower)) {
         score += 15;
       }
@@ -305,7 +313,7 @@ function App() {
               />
             </main>
           } />
-          <Route path="/timeline/:projectId" element={<ProjectTimeline currentUser={user} />} />
+          <Route path="/timeline/:projectId" element={<ProjectTimeline user={user} />} />
         </Routes>
 
         {isCreateModalOpen && (

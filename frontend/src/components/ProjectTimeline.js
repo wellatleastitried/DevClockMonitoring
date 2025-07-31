@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { projectService } from '../services/api';
-import { formatTime } from '../utils/timeUtils';
+import { formatTime, calculateCurrentTime } from '../utils/timeUtils';
 
 const ProjectTimeline = ({ user }) => {
   const { projectId } = useParams();
@@ -10,6 +10,42 @@ const ProjectTimeline = ({ user }) => {
   const [timelineData, setTimelineData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentTimes, setCurrentTimes] = useState({ devTime: 0, waitTime: 0 });
+
+  useEffect(() => {
+    if (!user?.role || user.role !== 'ADMIN') {
+      navigate('/');
+      return;
+    }
+
+    fetchProjectData();
+  }, [projectId, user, navigate]);
+
+  useEffect(() => {
+    if (!project) return;
+
+    const updateTimes = () => {
+      const times = calculateCurrentTime(project);
+      setCurrentTimes(times);
+    };
+
+    updateTimes();
+    const interval = setInterval(updateTimes, 1000);
+
+    return () => clearInterval(interval);
+  }, [project]);
+
+  useEffect(() => {
+    if (!project) return;
+
+    const refreshData = () => {
+      fetchProjectData();
+    };
+
+    const refreshInterval = setInterval(refreshData, 30000);
+
+    return () => clearInterval(refreshInterval);
+  }, [project]);
 
   useEffect(() => {
     if (!user?.role || user.role !== 'ADMIN') {
@@ -23,19 +59,26 @@ const ProjectTimeline = ({ user }) => {
   const fetchProjectData = async () => {
     try {
       setLoading(true);
+      console.log('Fetching project data for ID:', projectId);
       const projectData = await projectService.getProject(projectId);
+      console.log('Project data received:', projectData);
       setProject(projectData);
       
-      // Fetch actual timeline data from backend
       try {
+        console.log('Fetching timeline data for project:', projectId);
         const timelineResponse = await projectService.getProjectTimeline(projectId);
+        console.log('Timeline data received:', timelineResponse);
+        console.log('Timeline data length:', timelineResponse?.length);
+        console.log('Timeline data sample:', timelineResponse?.[0]);
         setTimelineData(timelineResponse);
       } catch (timelineErr) {
-        console.warn('Timeline endpoint not available yet:', timelineErr);
+        console.warn('Timeline endpoint error:', timelineErr);
+        console.warn('Response details:', timelineErr.response);
         setTimelineData([]);
       }
     } catch (err) {
       console.error('Failed to fetch project data:', err);
+      console.error('Error details:', err.response);
       setError('Failed to load project timeline');
     } finally {
       setLoading(false);
@@ -98,7 +141,7 @@ const ProjectTimeline = ({ user }) => {
             <div className="text-right">
               <div className="text-sm text-gray-500">Total Time Tracked</div>
               <div className="text-lg font-medium text-gray-900">
-                {formatTime(project.devTimeSeconds + project.waitTimeSeconds)}
+                {formatTime(currentTimes.devTime + currentTimes.waitTime)}
               </div>
             </div>
           </div>
@@ -117,16 +160,16 @@ const ProjectTimeline = ({ user }) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <div className="bg-blue-50 rounded-lg p-4">
               <div className="text-sm font-medium text-blue-600">Development Time</div>
-              <div className="text-2xl font-bold text-blue-700">{formatTime(project.devTimeSeconds)}</div>
+              <div className="text-2xl font-bold text-blue-700">{formatTime(currentTimes.devTime)}</div>
             </div>
             <div className="bg-orange-50 rounded-lg p-4">
               <div className="text-sm font-medium text-orange-600">Customer Wait Time</div>
-              <div className="text-2xl font-bold text-orange-700">{formatTime(project.waitTimeSeconds)}</div>
+              <div className="text-2xl font-bold text-orange-700">{formatTime(currentTimes.waitTime)}</div>
             </div>
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="text-sm font-medium text-gray-600">Total Duration</div>
               <div className="text-2xl font-bold text-gray-700">
-                {formatTime(project.devTimeSeconds + project.waitTimeSeconds)}
+                {formatTime(currentTimes.devTime + currentTimes.waitTime)}
               </div>
             </div>
           </div>
@@ -146,8 +189,13 @@ const ProjectTimeline = ({ user }) => {
                     {/* Timeline indicator */}
                     <div className="flex flex-col items-center">
                       <div className={`w-4 h-4 rounded-full ${
-                        entry.type === 'created' ? 'bg-gray-400' :
-                        entry.type === 'dev' ? 'bg-blue-500' : 'bg-orange-500'
+                        entry.eventType === 'PROJECT_CREATED' ? 'bg-gray-400' :
+                        entry.eventType === 'START_DEV' ? 'bg-blue-500' :
+                        entry.eventType === 'STOP_DEV' ? 'bg-blue-300' :
+                        entry.eventType === 'START_WAIT' ? 'bg-orange-500' :
+                        entry.eventType === 'STOP_WAIT' ? 'bg-orange-300' :
+                        entry.eventType === 'TIMER_STOPPED' ? 'bg-gray-500' :
+                        'bg-gray-400'
                       }`} />
                       {index < timelineData.length - 1 && (
                         <div className="w-0.5 h-8 bg-gray-300 mt-2" />
@@ -160,12 +208,15 @@ const ProjectTimeline = ({ user }) => {
                         <div>
                           <p className="text-sm font-medium text-gray-900">{entry.description}</p>
                           <p className="text-xs text-gray-500">
-                            {entry.timestamp.toLocaleDateString()} at {entry.timestamp.toLocaleTimeString()}
+                            {new Date(entry.timestamp).toLocaleDateString()} at {new Date(entry.timestamp).toLocaleTimeString()}
                           </p>
+                          {entry.username && (
+                            <p className="text-xs text-gray-400">by {entry.username}</p>
+                          )}
                         </div>
-                        {entry.duration > 0 && (
+                        {entry.durationSeconds > 0 && (
                           <div className="text-sm font-medium text-gray-600">
-                            {formatTime(entry.duration)}
+                            {formatTime(entry.durationSeconds)}
                           </div>
                         )}
                       </div>

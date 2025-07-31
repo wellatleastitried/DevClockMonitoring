@@ -1,6 +1,7 @@
 package com.devclock.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
@@ -15,7 +16,11 @@ public class TimelineEntry {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_id", nullable = false)
+    @JsonIgnore  // Prevent circular reference during JSON serialization
     private Project project;
+    
+    @Column(name = "project_id", insertable = false, updatable = false)
+    private Long projectId;  // Add this for JSON response
     
     @Column(nullable = false)
     private String eventType; // "START_DEV", "STOP_DEV", "START_WAIT", "STOP_WAIT", "PROJECT_CREATED"
@@ -33,7 +38,6 @@ public class TimelineEntry {
     @Column
     private String username; // User who performed the action
     
-    // Constructors
     public TimelineEntry() {}
     
     public TimelineEntry(Project project, String eventType, LocalDateTime timestamp, String description, String username) {
@@ -44,7 +48,6 @@ public class TimelineEntry {
         this.username = username;
     }
     
-    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -59,6 +62,15 @@ public class TimelineEntry {
     
     public void setProject(Project project) {
         this.project = project;
+        this.projectId = project != null ? project.getId() : null;
+    }
+    
+    public Long getProjectId() {
+        return projectId;
+    }
+    
+    public void setProjectId(Long projectId) {
+        this.projectId = projectId;
     }
     
     public String getEventType() {
