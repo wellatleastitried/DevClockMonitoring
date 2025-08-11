@@ -2,6 +2,10 @@
 
 A lightweight chess clock-style timer for tracking development hours vs customer wait time. Built with Java Spring Boot backend and React frontend.
 
+## Notice
+
+This is currently a POC. The future plans to make it ready for general use are below in the Future Plans section.
+
 ## Features
 
 - **Multiple Project Timers**: Create and manage multiple project timers with descriptions
